@@ -1,6 +1,7 @@
-# Ignore models
+# Large models
 *.pt
-yolov8n.pt
+!best.pt
+!backend/best.pt
 
 # Ignore Python cache
 __pycache__/

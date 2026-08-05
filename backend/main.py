@@ -46,9 +46,12 @@ async def predict(file: UploadFile = File(...), conf_thresh: float = Form(0.60))
     except Exception:
         return {"error": "Invalid image file"}
 
-    # Run inference
+    # Find all class IDs EXCEPT person
+    allowed_classes = [k for k, v in model.names.items() if "person" not in v.lower()]
+    
+    # Run inference, filtering out the person class
     t0 = time.time()
-    results = model.predict(source=img, conf=conf_thresh, verbose=False)
+    results = model.predict(source=img, conf=conf_thresh, classes=allowed_classes, verbose=False)
     elapsed = time.time() - t0
     
     result = results[0]
