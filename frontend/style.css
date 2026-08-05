@@ -496,6 +496,140 @@ input[type="range"]::-webkit-slider-thumb {
     background: var(--bg-hover);
 }
 
+/* Preview Container with Absolute Overlay Canvas */
+.preview-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.preview-wrapper img, .preview-wrapper video {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 550px;
+    object-fit: contain;
+}
+
+#overlayCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* Mirrored video display for natural webcam feed */
+.mirrored {
+    transform: scaleX(-1);
+}
+
+/* Compact Threat History Panel */
+.history-list-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 2px;
+    margin-top: 0.5rem;
+}
+
+.history-list-compact::-webkit-scrollbar {
+    width: 4px;
+}
+
+.history-list-compact::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 2px;
+}
+
+.history-item-compact {
+    background: var(--bg-base);
+    border: 1px solid var(--border);
+    padding: 0.6rem 0.8rem;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+}
+
+.history-item-compact:hover {
+    border-color: var(--border-light);
+    background: var(--bg-hover);
+}
+
+.history-item-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.history-item-time {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.history-item-class {
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--danger);
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.history-item-class::before {
+    content: '';
+    display: inline-block;
+    width: 5px; height: 5px;
+    background: var(--danger);
+    border-radius: 50%;
+}
+
+.history-item-conf {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--danger-bg);
+    border: 1px solid rgba(207, 79, 79, 0.2);
+    padding: 0.1rem 0.3rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: var(--text-primary);
+}
+
+/* Compact Export Action Buttons */
+.action-btn {
+    background: var(--bg-base);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+    font-family: 'JetBrains Mono', monospace;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--border-light);
+    background: var(--bg-hover);
+}
+
+/* Video upload dropzone and player controls */
+.video-section {
+    display: flex;
+    flex-direction: column;
+}
+
 /* Responsive */
 @media (max-width: 1200px) {
     .dashboard-grid { grid-template-columns: 1fr; }

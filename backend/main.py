@@ -57,7 +57,11 @@ def read_root():
     return {"status": "ok", "message": "Weapon Detection API is running"}
 
 @app.post("/api/predict")
-async def predict(file: UploadFile = File(...), conf_thresh: float = Form(0.60)):
+async def predict(
+    file: UploadFile = File(...), 
+    conf_thresh: float = Form(0.60),
+    return_image: bool = Form(True)
+):
     if not model:
         return {"error": "Model not loaded"}
     
@@ -75,15 +79,18 @@ async def predict(file: UploadFile = File(...), conf_thresh: float = Form(0.60))
     
     result = results[0]
     
-    # Draw annotations (returns BGR numpy array)
-    annotated = result.plot(line_width=2)
-    annotated_rgb = annotated[..., ::-1] # Convert BGR to RGB
-    
-    # Convert to base64
-    res_img = Image.fromarray(annotated_rgb)
-    buffered = BytesIO()
-    res_img.save(buffered, format="JPEG")
-    img_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
+    # Draw annotations (returns BGR numpy array) if return_image is True
+    img_base64 = ""
+    if return_image:
+        try:
+            annotated = result.plot(line_width=2)
+            annotated_rgb = annotated[..., ::-1] # Convert BGR to RGB
+            res_img = Image.fromarray(annotated_rgb)
+            buffered = BytesIO()
+            res_img.save(buffered, format="JPEG")
+            img_base64 = f"data:image/jpeg;base64,{base64.b64encode(buffered.getvalue()).decode('utf-8')}"
+        except Exception as e:
+            print(f"Error drawing annotations: {e}")
     
     # Parse detections
     detections = []
@@ -99,18 +106,35 @@ async def predict(file: UploadFile = File(...), conf_thresh: float = Form(0.60))
             
     total_detections = len(detections)
     
-    # Log to SQLite Database if a weapon is detected
+    # Log to SQLite Database if a weapon is detected (with de-duplication)
     if total_detections > 0:
         try:
             conn = sqlite3.connect(DB_FILE)
             c = conn.cursor()
             classes_str = ", ".join(list(set([d["class"] for d in detections])))
             highest_conf = max([d["confidence"] for d in detections])
-            c.execute('''
-                INSERT INTO detection_history (timestamp, num_detections, weapon_classes, highest_confidence)
-                VALUES (?, ?, ?, ?)
-            ''', (datetime.now().isoformat(), total_detections, classes_str, highest_conf))
-            conn.commit()
+            
+            # Check last logged entry to avoid flooding duplicates during continuous stream
+            c.execute('SELECT timestamp, weapon_classes FROM detection_history ORDER BY id DESC LIMIT 1')
+            last_row = c.fetchone()
+            is_duplicate = False
+            if last_row:
+                last_time_str, last_classes = last_row
+                try:
+                    last_time = datetime.fromisoformat(last_time_str)
+                    time_diff = (datetime.now() - last_time).total_seconds()
+                    # 4 seconds de-duplication window
+                    if time_diff < 4.0 and last_classes == classes_str:
+                        is_duplicate = True
+                except Exception:
+                    pass
+                    
+            if not is_duplicate:
+                c.execute('''
+                    INSERT INTO detection_history (timestamp, num_detections, weapon_classes, highest_confidence)
+                    VALUES (?, ?, ?, ?)
+                ''', (datetime.now().isoformat(), total_detections, classes_str, highest_conf))
+                conn.commit()
             conn.close()
         except Exception as e:
             print(f"Database error: {e}")
@@ -118,16 +142,19 @@ async def predict(file: UploadFile = File(...), conf_thresh: float = Form(0.60))
     return {
         "detections": detections,
         "inference_time_ms": round(elapsed * 1000, 2),
-        "annotated_image": f"data:image/jpeg;base64,{img_base64}",
+        "annotated_image": img_base64,
         "total_detections": total_detections
     }
 
 @app.get("/api/history")
-async def get_history():
+async def get_history(limit: int = 50):
     try:
         conn = sqlite3.connect(DB_FILE)
         c = conn.cursor()
-        c.execute('SELECT * FROM detection_history ORDER BY id DESC LIMIT 50')
+        if limit > 0:
+            c.execute('SELECT * FROM detection_history ORDER BY id DESC LIMIT ?', (limit,))
+        else:
+            c.execute('SELECT * FROM detection_history ORDER BY id DESC')
         rows = c.fetchall()
         conn.close()
         
@@ -143,6 +170,16 @@ async def get_history():
         return {"history": history}
     except Exception as e:
         return {"error": str(e)}
+
+# Serve frontend files locally from the FastAPI web server
+try:
+    from fastapi.staticfiles import StaticFiles
+    frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../frontend"))
+    if os.path.exists(frontend_dir):
+        app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
+        print(f"Successfully mounted frontend static files from: {frontend_dir}")
+except Exception as e:
+    print(f"Could not mount static files: {e}")
 
 if __name__ == "__main__":
     import uvicorn

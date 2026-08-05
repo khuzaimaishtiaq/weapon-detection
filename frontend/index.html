@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Threat Detection Interface</title>
     <link rel="stylesheet" href="style.css">
+    <!-- jsPDF and AutoTable for professional PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -28,27 +31,46 @@
                     </div>
                     
                     <div class="source-toggle">
-                        <button id="tabUpload" class="tab-btn active">File Upload</button>
+                        <button id="tabImage" class="tab-btn active">Image Upload</button>
+                        <button id="tabVideo" class="tab-btn">Video Upload</button>
                         <button id="tabWebcam" class="tab-btn">Live Stream</button>
                     </div>
 
+                    <!-- Image Section -->
                     <div class="upload-section" id="uploadSection">
-                        <div class="drop-zone" id="dropZone">
+                        <div class="drop-zone" id="dropZoneImage">
                             <svg class="drop-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                             <p class="drop-title">Drag & Drop Image</p>
                             <p class="drop-subtitle">or click to browse local files</p>
-                            <input type="file" id="fileInput" accept="image/*" hidden>
+                            <input type="file" id="imageFileInput" accept="image/*" hidden>
                         </div>
                     </div>
 
-                    <div class="webcam-section hidden" id="webcamSection">
-                        <div class="webcam-container">
-                            <video id="webcamVideo" autoplay playsinline muted class="hidden"></video>
-                            <div id="webcamPlaceholder" class="placeholder-text">Camera offline. Click initialize to start stream.</div>
+                    <!-- Video Section -->
+                    <div class="video-section hidden" id="videoSection">
+                        <div class="drop-zone" id="dropZoneVideo">
+                            <svg class="drop-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>
+                            <p class="drop-title">Drag & Drop Video</p>
+                            <p class="drop-subtitle">or click to browse video files</p>
+                            <input type="file" id="videoFileInput" accept="video/*" hidden>
                         </div>
-                        <button id="toggleWebcamBtn" class="primary-btn">Initialize Stream</button>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                            <button id="playVideoBtn" class="primary-btn" disabled>Play Video</button>
+                            <button id="toggleVideoDetectBtn" class="primary-btn execute-btn" disabled>Analyze Video</button>
+                        </div>
+                    </div>
+
+                    <!-- Webcam Section -->
+                    <div class="webcam-section hidden" id="webcamSection">
+                        <div style="padding: 2.5rem 1rem; text-align: center; background: var(--bg-base); border-radius: 6px; border: 1px dashed var(--border); margin-bottom: 2rem;">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); margin-bottom: 0.75rem;"><path d="M23 7l-7 5 7 5V7z"></path><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+                            <p style="font-size: 0.875rem; font-weight: 500; margin-bottom: 0.25rem;">Live Stream Interface</p>
+                            <p style="font-size: 0.75rem; color: var(--text-secondary);">Dual-Resolution, Low-latency feed</p>
+                        </div>
+                        <button id="toggleWebcamBtn" class="primary-btn execute-btn">Initialize Stream</button>
                     </div>
                     
+                    <!-- Hidden elements for frame processing -->
                     <canvas id="captureCanvas" hidden></canvas>
                     
                     <div class="settings-section">
@@ -71,7 +93,7 @@
                     <div class="panel-header">
                         <h2>Vision Output</h2>
                         <div class="status-indicator">
-                            <span class="status-dot"></span> System Ready
+                            <span class="status-dot" id="statusDot"></span> <span id="statusText">System Ready</span>
                         </div>
                     </div>
                     
@@ -79,12 +101,16 @@
                         <div id="loading" class="hidden">
                             <div class="spinner"></div>
                         </div>
-                        <img id="outputImage" src="" alt="Detection Output" class="hidden">
+                        <div class="preview-wrapper" id="previewWrapper">
+                            <img id="outputImage" src="" alt="Detection Output" class="hidden">
+                            <video id="activeVideo" autoplay playsinline muted class="hidden"></video>
+                            <canvas id="overlayCanvas"></canvas>
+                        </div>
                         <div id="placeholder" class="placeholder-text">Awaiting input data...</div>
                     </div>
                 </div>
 
-                <!-- Far Right: Telemetry -->
+                <!-- Far Right: Telemetry & Logs -->
                 <div class="panel telemetry-panel">
                     <div class="panel-header">
                         <h2>Telemetry</h2>
@@ -102,10 +128,21 @@
                     </div>
 
                     <div class="panel-header" style="margin-top: 1.5rem;">
-                        <h2>Detection Log</h2>
+                        <h2>Live Detections</h2>
                     </div>
                     <div class="detections-list" id="detList">
                         <div class="empty-log">No anomalies detected.</div>
+                    </div>
+
+                    <div class="panel-header" style="margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                        <h2>Threat History</h2>
+                        <div style="display: flex; gap: 0.25rem;">
+                            <button id="exportCsvBtn" class="action-btn" title="Export to CSV">CSV</button>
+                            <button id="exportPdfBtn" class="action-btn" title="Export to PDF">PDF</button>
+                        </div>
+                    </div>
+                    <div class="history-list-compact" id="historyListCompact">
+                        <div class="empty-log">No threats logged yet.</div>
                     </div>
                 </div>
             </div>
