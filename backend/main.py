@@ -1,11 +1,12 @@
 from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from ultralytics import YOLO
-import cv2
 import numpy as np
 import base64
 import os
 import time
+from PIL import Image
+from io import BytesIO
 
 app = FastAPI(title="Weapon Detection API")
 
@@ -38,12 +39,11 @@ async def predict(file: UploadFile = File(...), conf_thresh: float = Form(0.60))
     if not model:
         return {"error": "Model not loaded"}
     
-    # Read image
+    # Read image using PIL
     contents = await file.read()
-    nparr = np.frombuffer(contents, np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    
-    if img is None:
+    try:
+        img = Image.open(BytesIO(contents)).convert("RGB")
+    except Exception:
         return {"error": "Invalid image file"}
 
     # Run inference
@@ -53,12 +53,15 @@ async def predict(file: UploadFile = File(...), conf_thresh: float = Form(0.60))
     
     result = results[0]
     
-    # Draw annotations
+    # Draw annotations (returns BGR numpy array)
     annotated = result.plot(line_width=2)
+    annotated_rgb = annotated[..., ::-1] # Convert BGR to RGB
     
     # Convert to base64
-    _, buffer = cv2.imencode('.jpg', annotated)
-    img_base64 = base64.b64encode(buffer).decode('utf-8')
+    res_img = Image.fromarray(annotated_rgb)
+    buffered = BytesIO()
+    res_img.save(buffered, format="JPEG")
+    img_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
     
     # Parse detections
     detections = []
