@@ -19,7 +19,12 @@
 
         <main>
             <div class="control-panel">
-                <div class="upload-section">
+                <div class="source-toggle">
+                    <button id="tabUpload" class="tab-btn active">Upload Image</button>
+                    <button id="tabWebcam" class="tab-btn">Live Webcam</button>
+                </div>
+
+                <div class="upload-section" id="uploadSection">
                     <h2>Upload Image</h2>
                     <div class="drop-zone" id="dropZone">
                         <span class="drop-icon">📁</span>
@@ -27,6 +32,17 @@
                         <input type="file" id="fileInput" accept="image/*" hidden>
                     </div>
                 </div>
+
+                <div class="webcam-section hidden" id="webcamSection">
+                    <h2>Live Webcam</h2>
+                    <div class="webcam-container">
+                        <video id="webcamVideo" autoplay playsinline muted class="hidden"></video>
+                        <div id="webcamPlaceholder" class="placeholder-text">Click Start to use camera</div>
+                    </div>
+                    <button id="toggleWebcamBtn" class="primary-btn">Start Webcam</button>
+                </div>
+                
+                <canvas id="captureCanvas" hidden></canvas>
                 
                 <div class="settings-section">
                     <h2>Settings</h2>
