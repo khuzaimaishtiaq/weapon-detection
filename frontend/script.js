@@ -455,23 +455,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         isSending = true;
 
-        // Compression downscaling: Max Width 480px preservation
-        const maxW = 480;
         const vw = activeVideo.videoWidth;
         const vh = activeVideo.videoHeight;
-        const targetW = Math.min(maxW, vw);
-        const targetH = Math.floor(vh * (targetW / vw));
+        const targetW = vw;
+        const targetH = vh;
 
-        // Save scaling factors to map coordinates back to raw video size
-        scaleX = vw / targetW;
-        scaleY = vh / targetH;
+        // Use 1:1 scale ratios since we process at full resolution
+        scaleX = 1.0;
+        scaleY = 1.0;
 
         captureCanvas.width = targetW;
         captureCanvas.height = targetH;
         const ctx = captureCanvas.getContext('2d');
         ctx.drawImage(activeVideo, 0, 0, targetW, targetH);
 
-        // Convert canvas frame to JPEG with quality 0.5 for fast payload transfers
+        // Convert canvas frame to JPEG with high quality (0.9) for maximum YOLO detection accuracy
         captureCanvas.toBlob(async (blob) => {
             if (blob) {
                 try {
@@ -580,33 +578,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
         isSending = true;
 
-        // Compression downscaling: Max Width 480px preservation
-        const maxW = 480;
         const vw = activeVideo.videoWidth;
         const vh = activeVideo.videoHeight;
-        const targetW = Math.min(maxW, vw);
-        const targetH = Math.floor(vh * (targetW / vw));
+        const targetW = vw;
+        const targetH = vh;
 
-        // Save scaling factors to map coordinates back to raw video size
-        scaleX = vw / targetW;
-        scaleY = vh / targetH;
+        // Use 1:1 scale ratios since we process at full resolution
+        scaleX = 1.0;
+        scaleY = 1.0;
 
         captureCanvas.width = targetW;
         captureCanvas.height = targetH;
         const ctx = captureCanvas.getContext('2d');
         
-        // IMPORTANT: We do NOT mirror the frame coordinates drawn to the capture canvas.
-        // The model sees the normal (unmirrored) frame for better prediction, and we manually
-        // flip the X coords in drawDetections dynamically. Or we can mirror it here.
-        // Let's mirror it here so the backend sees exactly what the user sees (Rearview Mirror style).
-        // User request states: "The capture canvas mirrors the frame coordinates (ctx.scale(-1, 1)) so the backend sees exactly what you see."
-        // Let's implement ctx.scale(-1, 1) mirror draw:
+        // Mirror webcam frame drawing for natural user feedback preview
         ctx.translate(targetW, 0);
         ctx.scale(-1, 1);
         ctx.drawImage(activeVideo, 0, 0, targetW, targetH);
         ctx.setTransform(1, 0, 0, 1, 0, 0); // Restore identity
 
-        // Convert canvas frame to JPEG with quality 0.5
+        // Convert canvas frame to JPEG with high quality (0.9) for maximum YOLO detection accuracy
         captureCanvas.toBlob(async (blob) => {
             if (blob) {
                 try {
