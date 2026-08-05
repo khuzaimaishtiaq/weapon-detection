@@ -72,9 +72,21 @@ async def predict(
     except Exception:
         return {"error": "Invalid image file"}
 
-    # Run inference
+    # Convert PIL Image to NumPy array (RGB) for consistent preprocessing
+    img_np = np.array(img)
+    
+    # Resolve native training image size from model overrides (e.g. 416 for best.pt)
+    imgsz = model.overrides.get('imgsz', 416) if hasattr(model, 'overrides') and model.overrides else 416
+    
+    # Run inference with explicit confidence, IOU, and native image size constraints
     t0 = time.time()
-    results = model.predict(source=img, conf=conf_thresh, verbose=False)
+    results = model.predict(
+        source=img_np,
+        conf=conf_thresh,
+        iou=0.45,
+        imgsz=imgsz,
+        verbose=False
+    )
     elapsed = time.time() - t0
     
     result = results[0]
