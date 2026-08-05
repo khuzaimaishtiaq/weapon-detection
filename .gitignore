@@ -1,0 +1,17 @@
+# Ignore models
+*.pt
+best.pt
+yolov8n.pt
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+
+# Ignore dataset
+Dataset/
+Output_Images/
+
+# Venv
+venv/
+env/
+.env
