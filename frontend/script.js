@@ -5,6 +5,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const uploadSection = document.getElementById('uploadSection');
     const webcamSection = document.getElementById('webcamSection');
     
+    const viewHistoryBtn = document.getElementById('viewHistoryBtn');
+    const historyModal = document.getElementById('historyModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const historyTableBody = document.getElementById('historyTableBody');
+    
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
     
@@ -227,6 +232,48 @@ document.addEventListener('DOMContentLoaded', () => {
     function resetMetrics() {
         detCount.textContent = '0';
         infTime.textContent = '0ms';
-        detList.innerHTML = '';
+        detList.innerHTML = '<div class="empty-log">No anomalies detected.</div>';
     }
+
+    // --- DB HISTORY MODAL LOGIC ---
+    viewHistoryBtn.addEventListener('click', async () => {
+        historyModal.classList.remove('hidden');
+        historyTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Loading logs...</td></tr>';
+        
+        try {
+            const response = await fetch('/api/history');
+            const data = await response.json();
+            
+            if (data.history && data.history.length > 0) {
+                historyTableBody.innerHTML = '';
+                data.history.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>#${row.id}</td>
+                        <td>${new Date(row.timestamp).toLocaleString()}</td>
+                        <td>${row.num_detections}</td>
+                        <td>${row.weapon_classes}</td>
+                        <td>${Math.round(row.highest_confidence * 100)}%</td>
+                    `;
+                    historyTableBody.appendChild(tr);
+                });
+            } else {
+                historyTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No detection history found.</td></tr>';
+            }
+        } catch (error) {
+            historyTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--danger);">Failed to load history.</td></tr>';
+            console.error('Error fetching history:', error);
+        }
+    });
+
+    closeModalBtn.addEventListener('click', () => {
+        historyModal.classList.add('hidden');
+    });
+
+    // Close modal if clicked outside content
+    historyModal.addEventListener('click', (e) => {
+        if (e.target === historyModal) {
+            historyModal.classList.add('hidden');
+        }
+    });
 });

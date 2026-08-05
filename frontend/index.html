@@ -13,7 +13,10 @@
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                 <h1>Threat Detection Console</h1>
             </div>
-            <div class="user-badge">CoderAxo AI/ML Core</div>
+            <div style="display:flex; gap:1rem; align-items:center;">
+                <button id="viewHistoryBtn" class="primary-btn" style="padding:0.5rem 1rem; width:auto; font-size:0.75rem;">View DB Logs</button>
+                <div class="user-badge">CoderAxo AI/ML Core</div>
+            </div>
         </header>
 
         <main>
@@ -108,6 +111,33 @@
             </div>
         </main>
     </div>
+    
+    <!-- SQLite History Modal -->
+    <div id="historyModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>SQLite Detection History</h2>
+                <button id="closeModalBtn" class="close-btn">&times;</button>
+            </div>
+            <div class="table-container">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Timestamp</th>
+                            <th>Detections</th>
+                            <th>Classes</th>
+                            <th>Max Confidence</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        <!-- Logs populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
