@@ -1,18 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-    --bg-base: #09090b;
-    --bg-panel: #18181b;
-    --bg-hover: #27272a;
-    --text-primary: #fafafa;
-    --text-secondary: #a1a1aa;
-    --border: #3f3f46;
-    --border-light: #52525b;
-    --accent: #3b82f6;
-    --accent-hover: #2563eb;
-    --danger: #ef4444;
-    --danger-bg: rgba(239, 68, 68, 0.1);
-    --success: #10b981;
+    --bg-base: #141716;       /* Deep tactical gunmetal */
+    --bg-panel: #1d2220;      /* Elevated gunmetal */
+    --bg-hover: #29302d;      /* Hover state */
+    --text-primary: #e8edea;  /* Clean off-white */
+    --text-secondary: #8b9993;/* Muted tactical gray */
+    --border: #343d39;        /* Tactical border */
+    --border-light: #4c5953;  
+    --accent: #c48c25;        /* Tactical Brass/Gold */
+    --accent-hover: #dda12e;
+    --danger: #cf4f4f;        /* Muted Alert Red */
+    --danger-bg: rgba(207, 79, 79, 0.1);
+    --success: #427b58;       /* Tactical Green */
 }
 
 * {
