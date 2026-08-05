@@ -139,10 +139,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 await detect(blob, false);
                 // Trigger the next frame immediately after this one finishes!
                 if (isWebcamActive) {
-                    setTimeout(captureAndDetect, 50); // Just a tiny 50ms breather
+                    setTimeout(captureAndDetect, 150); // Give the API a tiny bit more breathing room
                 }
             }
-        }, 'image/jpeg', 0.5);
+        }, 'image/jpeg', 0.9); // High quality for accurate detection
     }
 
     // --- CORE API LOGIC ---
