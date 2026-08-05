@@ -125,7 +125,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function captureAndDetect() {
-        if (!isWebcamActive || webcamVideo.readyState !== 4) return;
+        if (!isWebcamActive) return;
+        
+        if (webcamVideo.readyState !== 4) {
+            // Video stream is still initializing, wait and try again
+            setTimeout(captureAndDetect, 100);
+            return;
+        }
         
         // Draw video frame to canvas
         captureCanvas.width = webcamVideo.videoWidth;
