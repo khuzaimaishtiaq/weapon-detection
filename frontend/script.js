@@ -105,8 +105,8 @@ document.addEventListener('DOMContentLoaded', () => {
             placeholder.classList.add('hidden');
             outputImage.classList.remove('hidden');
             
-            // Start capture loop (1 frame every 1000ms to avoid overwhelming the stateless API)
-            webcamInterval = setInterval(captureAndDetect, 1000);
+            // Start continuous ultra-fast capture loop
+            captureAndDetect();
         } catch (err) {
             alert('Could not access webcam: ' + err.message);
         }
@@ -120,9 +120,8 @@ document.addEventListener('DOMContentLoaded', () => {
         webcamVideo.classList.add('hidden');
         webcamPlaceholder.classList.remove('hidden');
         toggleWebcamBtn.textContent = 'Start Webcam';
-        toggleWebcamBtn.style.background = 'var(--accent)';
+        toggleWebcamBtn.style.background = 'var(--cyan)';
         isWebcamActive = false;
-        clearInterval(webcamInterval);
     }
 
     async function captureAndDetect() {
@@ -134,10 +133,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const ctx = captureCanvas.getContext('2d');
         ctx.drawImage(webcamVideo, 0, 0, captureCanvas.width, captureCanvas.height);
         
-        // Convert to blob and send to API
+        // Convert to highly compressed blob (0.5) for ultra-fast network transfer
         captureCanvas.toBlob(async (blob) => {
-            if (blob) await detect(blob, false);
-        }, 'image/jpeg', 0.8);
+            if (blob) {
+                await detect(blob, false);
+                // Trigger the next frame immediately after this one finishes!
+                if (isWebcamActive) {
+                    setTimeout(captureAndDetect, 50); // Just a tiny 50ms breather
+                }
+            }
+        }, 'image/jpeg', 0.5);
     }
 
     // --- CORE API LOGIC ---
