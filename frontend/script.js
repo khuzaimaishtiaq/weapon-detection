@@ -173,15 +173,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     box.className = 'detection-box';
                     box.innerHTML = `
                         <div class="det-header">
-                            <span class="det-class">🔴 ${det.class}</span>
+                            <span class="det-class">${det.class}</span>
                             <span>${Math.round(det.confidence * 100)}%</span>
                         </div>
-                        <div class="det-box">Box: [${det.box.join(', ')}]</div>
+                        <div class="det-box">Coordinates: [${det.box.join(', ')}]</div>
                     `;
                     detList.appendChild(box);
                 });
             } else {
-                detList.innerHTML = '<div class="detection-box" style="text-align:center; color: var(--text-muted);">✅ No weapons detected</div>';
+                detList.innerHTML = '<div class="empty-log">No anomalies detected.</div>';
             }
         } catch (error) {
             console.error('API Error:', error);

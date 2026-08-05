@@ -3,81 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weapon Detection System</title>
+    <title>Threat Detection Interface</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="app-container">
-        <header>
+        <header class="top-nav">
             <div class="logo">
-                <span class="icon">🔫</span>
-                <h1>Weapon Detection System</h1>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                <h1>Threat Detection Console</h1>
             </div>
-            <p class="subtitle">CoderAxo AI/ML Internship 2026</p>
+            <div class="user-badge">CoderAxo AI/ML Core</div>
         </header>
 
         <main>
-            <div class="control-panel">
-                <div class="source-toggle">
-                    <button id="tabUpload" class="tab-btn active">Upload Image</button>
-                    <button id="tabWebcam" class="tab-btn">Live Webcam</button>
-                </div>
+            <div class="dashboard-grid">
+                <!-- Left Column: Controls -->
+                <div class="panel controls-panel">
+                    <div class="panel-header">
+                        <h2>Input Source</h2>
+                    </div>
+                    
+                    <div class="source-toggle">
+                        <button id="tabUpload" class="tab-btn active">File Upload</button>
+                        <button id="tabWebcam" class="tab-btn">Live Stream</button>
+                    </div>
 
-                <div class="upload-section" id="uploadSection">
-                    <h2>Upload Image</h2>
-                    <div class="drop-zone" id="dropZone">
-                        <span class="drop-icon">📁</span>
-                        <p>Drag & Drop or Click to Upload</p>
-                        <input type="file" id="fileInput" accept="image/*" hidden>
+                    <div class="upload-section" id="uploadSection">
+                        <div class="drop-zone" id="dropZone">
+                            <svg class="drop-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            <p class="drop-title">Drag & Drop Image</p>
+                            <p class="drop-subtitle">or click to browse local files</p>
+                            <input type="file" id="fileInput" accept="image/*" hidden>
+                        </div>
+                    </div>
+
+                    <div class="webcam-section hidden" id="webcamSection">
+                        <div class="webcam-container">
+                            <video id="webcamVideo" autoplay playsinline muted class="hidden"></video>
+                            <div id="webcamPlaceholder" class="placeholder-text">Camera offline. Click initialize to start stream.</div>
+                        </div>
+                        <button id="toggleWebcamBtn" class="primary-btn">Initialize Stream</button>
+                    </div>
+                    
+                    <canvas id="captureCanvas" hidden></canvas>
+                    
+                    <div class="settings-section">
+                        <div class="panel-header">
+                            <h2>Parameters</h2>
+                        </div>
+                        <div class="setting-item">
+                            <label for="confThresh">
+                                <span>Confidence Threshold</span>
+                                <span id="confVal" class="badge">60%</span>
+                            </label>
+                            <input type="range" id="confThresh" min="0.1" max="0.9" step="0.05" value="0.6">
+                        </div>
+                        <button id="predictBtn" class="primary-btn execute-btn" disabled>Execute Analysis</button>
                     </div>
                 </div>
 
-                <div class="webcam-section hidden" id="webcamSection">
-                    <h2>Live Webcam</h2>
-                    <div class="webcam-container">
-                        <video id="webcamVideo" autoplay playsinline muted class="hidden"></video>
-                        <div id="webcamPlaceholder" class="placeholder-text">Click Start to use camera</div>
+                <!-- Right Column: Visualization -->
+                <div class="panel visual-panel">
+                    <div class="panel-header">
+                        <h2>Vision Output</h2>
+                        <div class="status-indicator">
+                            <span class="status-dot"></span> System Ready
+                        </div>
                     </div>
-                    <button id="toggleWebcamBtn" class="primary-btn">Start Webcam</button>
-                </div>
-                
-                <canvas id="captureCanvas" hidden></canvas>
-                
-                <div class="settings-section">
-                    <h2>Settings</h2>
-                    <div class="setting-item">
-                        <label for="confThresh">Confidence Threshold: <span id="confVal">60%</span></label>
-                        <input type="range" id="confThresh" min="0.1" max="0.9" step="0.05" value="0.6">
-                    </div>
-                    <button id="predictBtn" class="primary-btn" disabled>Detect Weapons</button>
-                </div>
-            </div>
-
-            <div class="results-panel">
-                <h2>Detection Results</h2>
-                <div class="results-grid">
+                    
                     <div class="image-preview">
                         <div id="loading" class="hidden">
                             <div class="spinner"></div>
-                            <p>Processing...</p>
                         </div>
                         <img id="outputImage" src="" alt="Detection Output" class="hidden">
-                        <div id="placeholder" class="placeholder-text">Upload an image to start detection</div>
+                        <div id="placeholder" class="placeholder-text">Awaiting input data...</div>
+                    </div>
+                </div>
+
+                <!-- Far Right: Telemetry -->
+                <div class="panel telemetry-panel">
+                    <div class="panel-header">
+                        <h2>Telemetry</h2>
                     </div>
                     
-                    <div class="metrics-sidebar">
+                    <div class="metrics-grid">
                         <div class="metric-card">
-                            <h3>🎯 Detections</h3>
-                            <p id="detCount" class="metric-value">0</p>
+                            <span class="metric-label">Objects Detected</span>
+                            <span id="detCount" class="metric-value">0</span>
                         </div>
                         <div class="metric-card">
-                            <h3>⏱️ Inference Time</h3>
-                            <p id="infTime" class="metric-value">0ms</p>
+                            <span class="metric-label">Latency</span>
+                            <span id="infTime" class="metric-value">0ms</span>
                         </div>
-                        <div class="detections-list" id="detList">
-                            <!-- Detection items will appear here -->
-                        </div>
+                    </div>
+
+                    <div class="panel-header" style="margin-top: 1.5rem;">
+                        <h2>Detection Log</h2>
+                    </div>
+                    <div class="detections-list" id="detList">
+                        <div class="empty-log">No anomalies detected.</div>
                     </div>
                 </div>
             </div>
