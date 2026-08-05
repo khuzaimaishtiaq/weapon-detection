@@ -26,6 +26,27 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentFile = null;
     let webcamStream = null;
     let isWebcamActive = false;
+    let lastAlertTime = 0; // Prevent spamming the audio alert
+
+    // --- AUDIO ALERT LOGIC ---
+    function playAlertSound() {
+        const now = Date.now();
+        // Only play the sound once every 4 seconds to avoid overlapping spam
+        if (now - lastAlertTime < 4000) return;
+        lastAlertTime = now;
+
+        // Use built-in browser Text-to-Speech for a professional AI voice
+        if ('speechSynthesis' in window) {
+            // Cancel any currently playing speech so it doesn't queue up
+            window.speechSynthesis.cancel();
+            
+            const msg = new SpeechSynthesisUtterance("Warning, weapon detected.");
+            msg.rate = 1.0; 
+            msg.pitch = 0.8; // Deep, serious tone
+            msg.volume = 1.0;
+            window.speechSynthesis.speak(msg);
+        }
+    }
     let webcamInterval = null;
 
     // --- TAB SWITCHING ---
@@ -174,6 +195,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             detList.innerHTML = '';
             if (data.detections && data.detections.length > 0) {
+                // Play audio alert if weapon is detected!
+                playAlertSound();
+                
                 data.detections.forEach(det => {
                     const box = document.createElement('div');
                     box.className = 'detection-box';
