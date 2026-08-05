@@ -1,6 +1,5 @@
 # Ignore models
 *.pt
-!backend/best.pt
 yolov8n.pt
 
 # Ignore Python cache
