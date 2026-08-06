@@ -6,3 +6,5 @@ numpy
 pillow
 python-multipart
 aiofiles
+yolov5
+gitpython

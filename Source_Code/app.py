@@ -53,17 +53,76 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+class YOLOv5BoxWrapper:
+    def __init__(self, x1, y1, x2, y2, conf, cls_id):
+        self.cls = float(cls_id)
+        self.conf = [float(conf)]
+        self.xyxy = [[float(x1), float(y1), float(x2), float(y2)]]
+
+class YOLOv5ResultWrapper:
+    def __init__(self, results_v5, conf_thresh):
+        self.results_v5 = results_v5
+        pred = results_v5.xyxy[0].cpu().numpy()
+        self.boxes = []
+        for box in pred:
+            x1, y1, x2, y2, conf, cls_id = box
+            if conf >= conf_thresh:
+                self.boxes.append(YOLOv5BoxWrapper(x1, y1, x2, y2, conf, cls_id))
+                
+    def plot(self, labels=True, conf=True, line_width=2):
+        self.results_v5.render()
+        annotated_rgb = self.results_v5.ims[0]
+        # Convert RGB to BGR to match YOLOv8 plot() output format
+        return cv2.cvtColor(annotated_rgb, cv2.COLOR_RGB2BGR)
+
+class YOLOv5Adapter:
+    def __init__(self, model_v5):
+        self.model_v5 = model_v5
+        self.names = model_v5.names
+        self.overrides = {'imgsz': 640}
+
+    def predict(self, source, conf=0.25, iou=0.45, imgsz=640, verbose=False):
+        results = self.model_v5(source, size=imgsz)
+        return [YOLOv5ResultWrapper(results, conf)]
+
 # ── Load Model ────────────────────────────────────────────────
 @st.cache_resource
 def load_model():
+    # Apply monkey patches to support loading Linux-trained YOLOv5 models on Windows
+    import pathlib
+    pathlib.PosixPath = pathlib.WindowsPath
+    import torch
+    original_load = torch.load
+    torch.load = lambda *args, **kwargs: original_load(*args, **{**kwargs, 'weights_only': False})
+    
     try:
         from ultralytics import YOLO
-        model_path = Path('best.pt')
-        if model_path.exists():
-            model = YOLO(str(model_path))
-            return model, "custom"
+        import yolov5
+    except Exception as e:
+        return None, f"import_error: {e}"
+        
+    try:
+        weights_files = ['best.pt', 'backend/best.pt', 'yolov8n.pt']
+        weights_path = None
+        for f in weights_files:
+            p = Path(f)
+            if p.exists():
+                weights_path = str(p)
+                break
+                
+        if weights_path:
+            # Try loading as YOLOv8 first
+            try:
+                model = YOLO(weights_path)
+                return model, f"custom (YOLOv8) from {weights_path}"
+            except Exception as e:
+                # Try loading as YOLOv5
+                try:
+                    model = YOLOv5Adapter(yolov5.load(weights_path))
+                    return model, f"custom (YOLOv5) from {weights_path}"
+                except Exception as ex:
+                    return None, f"load_error: {ex}"
         else:
-            # Fallback: pretrained COCO model for demo
             model = YOLO('yolov8n.pt')
             return model, "pretrained"
     except Exception as e:
@@ -91,17 +150,8 @@ with st.sidebar:
     show_labels = st.checkbox("Show Labels", value=True)
     show_conf   = st.checkbox("Show Confidence", value=True)
     st.divider()
-    st.markdown("### 📌 Classes")
-    for cls, color in COLORS.items():
-        hex_color = '#{:02x}{:02x}{:02x}'.format(*color)
-        st.markdown(
-            f'<div style="display:flex;align-items:center;gap:8px;margin:4px 0">'
-            f'<div style="width:16px;height:16px;background:{hex_color};border-radius:3px"></div>'
-            f'<span style="color:var(--text-color); font-weight:500; text-transform:capitalize">{cls}</span></div>',
-            unsafe_allow_html=True
-        )
 
-# ── Load model ────────────────────────────────────────────────
+# Load model first to dynamically populate classes sidebar
 with st.spinner("Loading model..."):
     model, model_status = load_model()
 
@@ -110,11 +160,33 @@ if model is None:
     st.info("Train the model first by running Notebook.ipynb")
     st.stop()
 
-if model_status == "pretrained":
+with st.sidebar:
+    st.markdown("### 📌 Classes")
+    model_classes = list(model.names.values()) if hasattr(model, 'names') and model.names else CLASS_NAMES
+    
+    def get_color_for_class(cls_name):
+        c = cls_name.lower()
+        if 'gun' in c or 'pistol' in c or 'rifle' in c or 'weapon' in c:
+            return (255, 75, 75)
+        elif 'knife' in c or 'blade' in c or 'stabbing' in c:
+            return (255, 165, 0)
+        return (255, 0, 128)
+        
+    for cls in model_classes:
+        color = get_color_for_class(cls)
+        hex_color = '#{:02x}{:02x}{:02x}'.format(*color)
+        st.markdown(
+            f'<div style="display:flex;align-items:center;gap:8px;margin:4px 0">'
+            f'<div style="width:16px;height:16px;background:{hex_color};border-radius:3px"></div>'
+            f'<span style="color:var(--text-color); font-weight:500; text-transform:capitalize">{cls}</span></div>',
+            unsafe_allow_html=True
+        )
+
+if "pretrained" in model_status:
     st.warning("⚠️ Custom trained model not found. Using pretrained YOLOv8n (COCO). "
                "Train the model first for weapon-specific detection.")
 else:
-    st.success("✅ Custom weapon detection model loaded!")
+    st.success(f"✅ Custom weapon detection model loaded! ({model_status})")
 
 # ── Main Tabs ─────────────────────────────────────────────────
 tab1, tab2, tab3 = st.tabs(["📷 Image Detection", "🎥 Video Detection", "📊 Model Info"])
@@ -169,9 +241,10 @@ with tab1:
                 st.markdown("#### Detected Objects")
                 for box in result.boxes:
                     cls_id   = int(box.cls)
-                    cls_name = CLASS_NAMES[cls_id] if cls_id < len(CLASS_NAMES) else f"class_{cls_id}"
-                    conf_val = float(box.conf)
-                    xyxy     = [round(v, 1) for v in box.xyxy[0].tolist()]
+                    cls_name = model.names[cls_id] if hasattr(model, 'names') and cls_id in model.names else f"class_{cls_id}"
+                    conf_val = float(box.conf[0])
+                    xyxy_list = box.xyxy[0].tolist() if hasattr(box.xyxy[0], 'tolist') else box.xyxy[0]
+                    xyxy     = [round(v, 1) for v in xyxy_list]
                     st.markdown(
                         f'<div class="detection-box">'
                         f'<strong>🔴 {cls_name.upper()}</strong> — '
@@ -281,12 +354,17 @@ with tab2:
 # ── TAB 3: Model Info ─────────────────────────────────────────
 with tab3:
     st.markdown("### 📊 Model Information")
+    # Dynamically resolve architecture and framework names
+    arch_name = "YOLOv5" if "YOLOv5" in model_status else "YOLOv8"
+    framework_name = "Ultralytics YOLOv5" if "YOLOv5" in model_status else "Ultralytics YOLOv8"
+    params_count = "~7.0M (YOLOv5s)" if "YOLOv5" in model_status else "~3.2M (YOLOv8n)"
+    
     info = {
-        "Model Architecture": "YOLOv8n",
-        "Classes":            ", ".join(CLASS_NAMES),
+        "Model Architecture": arch_name,
+        "Classes":            ", ".join(model_classes),
         "Input Size":         "640×640",
-        "Parameters":         "~3.2M",
-        "Framework":          "Ultralytics YOLOv8",
+        "Parameters":         params_count,
+        "Framework":          framework_name,
         "Offer ID":           "CAX-OL-2026-265",
         "Project":            "Weapon Detection in CCTV Footage",
     }

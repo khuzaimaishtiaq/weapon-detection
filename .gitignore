@@ -15,3 +15,6 @@ Output_Images/
 venv/
 env/
 .env
+
+# Database
+*.db

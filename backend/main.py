@@ -40,15 +40,70 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load model (looks for best.pt in backend dir or parent dir, falls back to yolov8n.pt)
+class YOLOv5BoxWrapper:
+    def __init__(self, x1, y1, x2, y2, conf, cls_id):
+        self.cls = float(cls_id)
+        self.conf = [float(conf)]
+        self.xyxy = [[float(x1), float(y1), float(x2), float(y2)]]
+
+class YOLOv5ResultWrapper:
+    def __init__(self, results_v5, conf_thresh):
+        self.results_v5 = results_v5
+        pred = results_v5.xyxy[0].cpu().numpy()
+        self.boxes = []
+        for box in pred:
+            x1, y1, x2, y2, conf, cls_id = box
+            if conf >= conf_thresh:
+                self.boxes.append(YOLOv5BoxWrapper(x1, y1, x2, y2, conf, cls_id))
+                
+    def plot(self, labels=True, conf=True, line_width=2):
+        self.results_v5.render()
+        annotated_rgb = self.results_v5.ims[0]
+        # Convert RGB to BGR to match YOLOv8 plot() output format
+        return cv2.cvtColor(annotated_rgb, cv2.COLOR_RGB2BGR)
+
+class YOLOv5Adapter:
+    def __init__(self, model_v5):
+        self.model_v5 = model_v5
+        self.names = model_v5.names
+        self.overrides = {'imgsz': 640}
+
+    def predict(self, source, conf=0.25, iou=0.45, imgsz=640, verbose=False):
+        results = self.model_v5(source, size=imgsz)
+        return [YOLOv5ResultWrapper(results, conf)]
+
+# Load model (looks for best (1).pt, best.pt in backend dir or parent dir, falls back to yolov8n.pt)
 model = None
+
+# Apply monkey patches to support loading Linux-trained YOLOv5 models on Windows
+import pathlib
+pathlib.PosixPath = pathlib.WindowsPath
+import torch
+original_load = torch.load
+torch.load = lambda *args, **kwargs: original_load(*args, **{**kwargs, 'weights_only': False})
+
 try:
-    if os.path.exists('best.pt'):
-        model = YOLO('best.pt')
-    elif os.path.exists('../best.pt'):
-        model = YOLO('../best.pt')
+    weights_files = ['best.pt', '../best.pt', 'yolov8n.pt']
+    weights_path = None
+    for f in weights_files:
+        if os.path.exists(f):
+            weights_path = f
+            break
+            
+    if weights_path:
+        # Try loading as YOLOv8 first
+        try:
+            model = YOLO(weights_path)
+            print(f"Successfully loaded YOLOv8 model from {weights_path}")
+        except Exception as e:
+            print(f"Failed to load as YOLOv8: {e}. Trying YOLOv5...")
+            # Try loading as YOLOv5
+            import yolov5
+            model = YOLOv5Adapter(yolov5.load(weights_path))
+            print(f"Successfully loaded YOLOv5 model from {weights_path}")
     else:
         model = YOLO('yolov8n.pt')
+        print("Fallback: loaded yolov8n.pt")
 except Exception as e:
     print(f"Error loading model: {e}")
 
@@ -71,9 +126,6 @@ async def predict(
         img = Image.open(BytesIO(contents)).convert("RGB")
     except Exception:
         return {"error": "Invalid image file"}
-
-    # Convert PIL Image to NumPy array (RGB) for consistent preprocessing
-    img_np = np.array(img)
     
     # Resolve native training image size from model overrides (e.g. 416 for best.pt)
     imgsz = model.overrides.get('imgsz', 416) if hasattr(model, 'overrides') and model.overrides else 416
@@ -81,7 +133,7 @@ async def predict(
     # Run inference with explicit confidence, IOU, and native image size constraints
     t0 = time.time()
     results = model.predict(
-        source=img_np,
+        source=img,
         conf=conf_thresh,
         iou=0.45,
         imgsz=imgsz,
@@ -113,7 +165,7 @@ async def predict(
             detections.append({
                 "class": name,
                 "confidence": round(float(box.conf[0]), 2),
-                "box": box.xyxy[0].tolist()
+                "box": box.xyxy[0]
             })
             
     total_detections = len(detections)
