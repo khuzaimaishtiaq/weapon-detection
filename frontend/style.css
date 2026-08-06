@@ -500,7 +500,6 @@ input[type="range"]::-webkit-slider-thumb {
 .preview-wrapper {
     position: relative;
     display: inline-block;
-    width: 100%;
     max-width: 100%;
     border-radius: 4px;
     overflow: hidden;
@@ -508,10 +507,10 @@ input[type="range"]::-webkit-slider-thumb {
 
 .preview-wrapper img, .preview-wrapper video {
     display: block;
-    width: 100%;
+    width: auto;
     height: auto;
+    max-width: 100%;
     max-height: 550px;
-    object-fit: contain;
 }
 
 #overlayCanvas {
