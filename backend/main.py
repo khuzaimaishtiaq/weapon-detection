@@ -122,7 +122,7 @@ def read_root():
     return {"status": "ok", "message": "Weapon Detection API is running"}
 
 @app.get("/api/health")
-def read_health():
+async def health():
     return {
         "status": "ok" if model is not None else "error",
         "message": "Weapon Detection API is running" if model is not None else "Weapon Detection API running, but model is not loaded",

@@ -901,16 +901,25 @@ document.addEventListener('DOMContentLoaded', () => {
         setSystemStatus('processing', 'Connecting to Backend...');
         try {
             const response = await fetch(getApiUrl('/api/health'));
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                console.warn('Backend offline or not returning JSON');
+                setSystemStatus('alert', 'Backend Offline');
+                return false;
+            }
             const data = await response.json();
             if (data.model_loaded) {
                 const classesInfo = data.model_classes && data.model_classes.length > 0 ? ` [${data.model_classes.join(', ')}]` : '';
                 setSystemStatus('ready', `System Online${classesInfo}`);
+                return data.status === 'ok';
             } else {
                 setSystemStatus('alert', 'Model Load Failed on Server');
+                return false;
             }
         } catch (error) {
-            console.error('Backend health check failed:', error);
+            console.warn('Health check failed:', error.message);
             setSystemStatus('alert', 'Backend Server Offline');
+            return false;
         }
     }
 
