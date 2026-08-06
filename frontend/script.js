@@ -900,7 +900,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function checkBackendHealth() {
         setSystemStatus('processing', 'Connecting to Backend...');
         try {
-            const response = await fetch(getApiUrl('/'));
+            const response = await fetch(getApiUrl('/api/health'));
             const data = await response.json();
             if (data.model_loaded) {
                 const classesInfo = data.model_classes && data.model_classes.length > 0 ? ` [${data.model_classes.join(', ')}]` : '';
