@@ -102,7 +102,7 @@ def load_model():
         return None, f"import_error: {e}"
         
     try:
-        weights_files = ['best.pt', 'backend/best.pt', 'yolov8n.pt']
+        weights_files = ['best (1).pt', 'best.pt', 'backend/best (1).pt', 'backend/best.pt', 'yolov8n.pt']
         weights_path = None
         for f in weights_files:
             p = Path(f)
