@@ -82,6 +82,8 @@ class YOLOv5Adapter:
         self.overrides = {'imgsz': 640}
 
     def predict(self, source, conf=0.25, iou=0.45, imgsz=640, verbose=False):
+        self.model_v5.conf = float(conf)
+        self.model_v5.iou = float(iou)
         results = self.model_v5(source, size=imgsz)
         return [YOLOv5ResultWrapper(results, conf)]
 
