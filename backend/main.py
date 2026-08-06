@@ -83,7 +83,7 @@ original_load = torch.load
 torch.load = lambda *args, **kwargs: original_load(*args, **{**kwargs, 'weights_only': False})
 
 try:
-    weights_files = ['best.pt', '../best.pt', 'yolov8n.pt']
+    weights_files = ['best.pt', 'backend/best.pt', '../best.pt', 'yolov8n.pt', 'backend/yolov8n.pt']
     weights_path = None
     for f in weights_files:
         if os.path.exists(f):
