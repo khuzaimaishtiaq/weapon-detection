@@ -489,7 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     requestAnimationFrame(videoFrameProcessingLoop);
                 }
             }
-        }, 'image/jpeg', 0.9);
+        }, 'image/jpeg', 0.5);
     }
 
     // --- WEBCAM STREAM CONTROLS ---
