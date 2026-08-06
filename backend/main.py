@@ -74,6 +74,8 @@ class YOLOv5Adapter:
 
 # Load model (looks for best (1).pt, best.pt in backend dir or parent dir, falls back to yolov8n.pt)
 model = None
+weights_path = None
+model_error = None
 
 # Apply monkey patches to support loading Linux-trained YOLOv5 models on Windows
 import pathlib
@@ -84,7 +86,6 @@ torch.load = lambda *args, **kwargs: original_load(*args, **{**kwargs, 'weights_
 
 try:
     weights_files = ['best.pt', 'backend/best.pt', '../best.pt', 'yolov8n.pt', 'backend/yolov8n.pt']
-    weights_path = None
     for f in weights_files:
         if os.path.exists(f):
             weights_path = f
@@ -102,14 +103,40 @@ try:
             model = YOLOv5Adapter(yolov5.load(weights_path))
             print(f"Successfully loaded YOLOv5 model from {weights_path}")
     else:
-        model = YOLO('yolov8n.pt')
-        print("Fallback: loaded yolov8n.pt")
+        try:
+            model = YOLO('yolov8n.pt')
+            weights_path = 'yolov8n.pt'
+            print("Fallback: loaded yolov8n.pt")
+        except Exception as e_fallback:
+            model_error = f"No local weights found, and fallback download failed: {e_fallback}"
+            print(model_error)
 except Exception as e:
+    model_error = str(e)
     print(f"Error loading model: {e}")
 
 @app.get("/")
 def read_root():
     return {"status": "ok", "message": "Weapon Detection API is running"}
+
+@app.get("/api/status")
+def get_api_status():
+    import os
+    try:
+        dir_contents = os.listdir('.')
+    except Exception:
+        dir_contents = []
+    try:
+        backend_contents = os.listdir('backend') if os.path.exists('backend') else []
+    except Exception:
+        backend_contents = []
+    return {
+        "model_loaded": model is not None,
+        "weights_path": weights_path,
+        "model_error": model_error,
+        "current_dir": os.getcwd(),
+        "dir_contents": dir_contents,
+        "backend_contents": backend_contents
+    }
 
 @app.post("/api/predict")
 async def predict(
