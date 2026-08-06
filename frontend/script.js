@@ -909,8 +909,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const data = await response.json();
             if (data.model_loaded) {
-                const classesInfo = data.model_classes && data.model_classes.length > 0 ? ` [${data.model_classes.join(', ')}]` : '';
-                setSystemStatus('ready', `System Online${classesInfo}`);
+                setSystemStatus('ready', 'System Online');
                 return data.status === 'ok';
             } else {
                 setSystemStatus('alert', 'Model Load Failed on Server');
