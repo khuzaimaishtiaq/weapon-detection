@@ -488,6 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (isVideoAnalysisActive) {
                     requestAnimationFrame(videoFrameProcessingLoop);
                 }
+            }
         }, 'image/jpeg', 0.9);
     }
 
