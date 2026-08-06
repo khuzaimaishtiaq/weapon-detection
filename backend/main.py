@@ -134,10 +134,12 @@ async def health():
 async def predict(
     file: UploadFile = File(...), 
     conf_thresh: float = Form(0.60),
-    return_image: bool = Form(True)
+    return_image: str = Form("true")
 ):
     if not model:
         return {"error": "Model not loaded"}
+    
+    return_img_bool = return_image.lower() == "true"
     
     # Read image using PIL
     contents = await file.read()
@@ -164,7 +166,7 @@ async def predict(
     
     # Draw annotations (returns BGR numpy array) if return_image is True
     img_base64 = ""
-    if return_image:
+    if return_img_bool:
         try:
             annotated = result.plot(line_width=2)
             annotated_rgb = annotated[..., ::-1] # Convert BGR to RGB
@@ -175,17 +177,26 @@ async def predict(
         except Exception as e:
             print(f"Error drawing annotations: {e}")
     
+    # Allowed weapon keywords
+    weapon_keywords = ["pistol", "rifle", "knife", "gun", "weapon", "firearm", "sword", "handgun", "shotgun", "smg", "sniper", "assault"]
+    
     # Parse detections
     detections = []
     if result.boxes:
         for box in result.boxes:
             cls_id = int(box.cls)
             name = model.names[cls_id] if hasattr(model, 'names') and cls_id in model.names else str(cls_id)
-            detections.append({
-                "class": name,
-                "confidence": round(float(box.conf[0]), 2),
-                "box": box.xyxy[0]
-            })
+            
+            # Check if class name is a weapon
+            name_lower = name.lower()
+            is_weapon = any(kw in name_lower for kw in weapon_keywords)
+            
+            if is_weapon:
+                detections.append({
+                    "class": name,
+                    "confidence": round(float(box.conf[0]), 2),
+                    "box": box.xyxy[0]
+                })
             
     total_detections = len(detections)
     

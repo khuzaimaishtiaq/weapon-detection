@@ -59,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isVideoAnalysisActive = false;
     let isSending = false;
     let lastAlertTime = 0;
+    let lastHistoryRefreshTime = 0;
     let currentMode = 'image'; // 'image', 'video', 'webcam'
     let scaleX = 1.0;
     let scaleY = 1.0;
@@ -457,7 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const vw = activeVideo.videoWidth;
         const vh = activeVideo.videoHeight;
         
-        // Client-side downscaling to max 640px to minimize network latency and enable sub-second updates
+        // Client-side downscaling to max 640px to minimize network latency
         const maxDim = 640;
         let targetW = vw;
         let targetH = vh;
@@ -589,7 +590,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const vw = activeVideo.videoWidth;
         const vh = activeVideo.videoHeight;
         
-        // Client-side downscaling to max 640px to minimize network latency and enable sub-second updates
+        // Client-side downscaling to max 640px to minimize network latency
         const maxDim = 640;
         let targetW = vw;
         let targetH = vh;
@@ -661,7 +662,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.total_detections > 0) {
                 setSystemStatus('alert', `THREAT ACTIVE: WEAPON DETECTED (${data.total_detections})`);
                 playVoiceAlert();
-                refreshThreatHistory(); // Update live database logs sidebar list
+                
+                // Throttle history refresh to prevent browser network queue saturation
+                const now = Date.now();
+                if (now - lastHistoryRefreshTime > 2000) {
+                    refreshThreatHistory();
+                    lastHistoryRefreshTime = now;
+                }
 
                 data.detections.forEach(det => {
                     const el = document.createElement('div');
