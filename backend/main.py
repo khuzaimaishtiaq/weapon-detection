@@ -75,9 +75,17 @@ class YOLOv5Adapter:
 # Load model (looks for best (1).pt, best.pt in backend dir or parent dir, falls back to yolov8n.pt)
 model = None
 
-# Apply monkey patches to support loading Linux-trained YOLOv5 models on Windows
+# Apply monkey patches to support loading cross-platform YOLOv5 models
+import platform
 import pathlib
-pathlib.PosixPath = pathlib.WindowsPath
+if platform.system() == 'Windows':
+    pathlib.PosixPath = pathlib.WindowsPath
+else:
+    try:
+        pathlib.WindowsPath = pathlib.PosixPath
+    except AttributeError:
+        pass
+
 import torch
 original_load = torch.load
 torch.load = lambda *args, **kwargs: original_load(*args, **{**kwargs, 'weights_only': False})
