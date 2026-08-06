@@ -591,11 +591,8 @@ document.addEventListener('DOMContentLoaded', () => {
         captureCanvas.height = targetH;
         const ctx = captureCanvas.getContext('2d');
         
-        // Mirror webcam frame drawing for natural user feedback preview
-        ctx.translate(targetW, 0);
-        ctx.scale(-1, 1);
+        // Draw the raw webcam frame (non-mirrored) to send to the backend
         ctx.drawImage(activeVideo, 0, 0, targetW, targetH);
-        ctx.setTransform(1, 0, 0, 1, 0, 0); // Restore identity
 
         // Convert canvas frame to JPEG with high quality (0.9) for maximum YOLO detection accuracy
         captureCanvas.toBlob(async (blob) => {
@@ -616,7 +613,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     requestAnimationFrame(webcamFrameProcessingLoop);
                 }
             }
-        }, 'image/jpeg', 0.5);
+        }, 'image/jpeg', 0.9);
     }
 
     // --- FRAME PREDICTION PIPELINE ---
