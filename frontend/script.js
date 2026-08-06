@@ -443,12 +443,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isVideoAnalysisActive || activeVideo.paused || activeVideo.ended) return;
         
         if (isSending) {
-            // Concurrency lock: skip frame capture if previous is still processing
             requestAnimationFrame(videoFrameProcessingLoop);
             return;
         }
 
-        if (activeVideo.readyState !== 4) { // HAVE_ENOUGH_DATA
+        if (activeVideo.readyState !== 4) {
             requestAnimationFrame(videoFrameProcessingLoop);
             return;
         }
@@ -457,19 +456,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const vw = activeVideo.videoWidth;
         const vh = activeVideo.videoHeight;
-        const targetW = vw;
-        const targetH = vh;
+        
+        // Client-side downscaling to max 640px to minimize network latency and enable sub-second updates
+        const maxDim = 640;
+        let targetW = vw;
+        let targetH = vh;
+        if (vw > maxDim || vh > maxDim) {
+            if (vw > vh) {
+                targetW = maxDim;
+                targetH = Math.round((vh * maxDim) / vw);
+            } else {
+                targetH = maxDim;
+                targetW = Math.round((vw * maxDim) / vh);
+            }
+        }
 
-        // Use 1:1 scale ratios since we process at full resolution
-        scaleX = 1.0;
-        scaleY = 1.0;
+        scaleX = vw / targetW;
+        scaleY = vh / targetH;
 
         captureCanvas.width = targetW;
         captureCanvas.height = targetH;
         const ctx = captureCanvas.getContext('2d');
         ctx.drawImage(activeVideo, 0, 0, targetW, targetH);
 
-        // Convert canvas frame to JPEG with high quality (0.9) for maximum YOLO detection accuracy
         captureCanvas.toBlob(async (blob) => {
             if (blob) {
                 try {
@@ -478,7 +487,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.error(err);
                 } finally {
                     isSending = false;
-                    // Trigger next frame instantly upon response completion
                     if (isVideoAnalysisActive) {
                         requestAnimationFrame(videoFrameProcessingLoop);
                     }
@@ -489,7 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     requestAnimationFrame(videoFrameProcessingLoop);
                 }
             }
-        }, 'image/jpeg', 0.5);
+        }, 'image/jpeg', 0.7);
     }
 
     // --- WEBCAM STREAM CONTROLS ---
@@ -580,12 +588,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const vw = activeVideo.videoWidth;
         const vh = activeVideo.videoHeight;
-        const targetW = vw;
-        const targetH = vh;
+        
+        // Client-side downscaling to max 640px to minimize network latency and enable sub-second updates
+        const maxDim = 640;
+        let targetW = vw;
+        let targetH = vh;
+        if (vw > maxDim || vh > maxDim) {
+            if (vw > vh) {
+                targetW = maxDim;
+                targetH = Math.round((vh * maxDim) / vw);
+            } else {
+                targetH = maxDim;
+                targetW = Math.round((vw * maxDim) / vh);
+            }
+        }
 
-        // Use 1:1 scale ratios since we process at full resolution
-        scaleX = 1.0;
-        scaleY = 1.0;
+        scaleX = vw / targetW;
+        scaleY = vh / targetH;
 
         captureCanvas.width = targetW;
         captureCanvas.height = targetH;
@@ -594,7 +613,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Draw the raw webcam frame (non-mirrored) to send to the backend
         ctx.drawImage(activeVideo, 0, 0, targetW, targetH);
 
-        // Convert canvas frame to JPEG with high quality (0.9) for maximum YOLO detection accuracy
         captureCanvas.toBlob(async (blob) => {
             if (blob) {
                 try {
@@ -613,7 +631,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     requestAnimationFrame(webcamFrameProcessingLoop);
                 }
             }
-        }, 'image/jpeg', 0.9);
+        }, 'image/jpeg', 0.7);
     }
 
     // --- FRAME PREDICTION PIPELINE ---
