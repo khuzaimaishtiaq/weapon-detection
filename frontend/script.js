@@ -896,7 +896,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- INITIALIZATION ON LOAD ---
+    // --- INITIALIZATION ON LOAD & HEALTH CHECK ---
+    async function checkBackendHealth() {
+        setSystemStatus('processing', 'Connecting to Backend...');
+        try {
+            const response = await fetch(getApiUrl('/'));
+            const data = await response.json();
+            if (data.model_loaded) {
+                const classesInfo = data.model_classes && data.model_classes.length > 0 ? ` [${data.model_classes.join(', ')}]` : '';
+                setSystemStatus('ready', `System Online${classesInfo}`);
+            } else {
+                setSystemStatus('alert', 'Model Load Failed on Server');
+            }
+        } catch (error) {
+            console.error('Backend health check failed:', error);
+            setSystemStatus('alert', 'Backend Server Offline');
+        }
+    }
+
     refreshThreatHistory();
-    setSystemStatus('ready', 'System Ready');
+    checkBackendHealth();
 });

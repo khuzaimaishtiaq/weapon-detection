@@ -109,7 +109,12 @@ except Exception as e:
 
 @app.get("/")
 def read_root():
-    return {"status": "ok", "message": "Weapon Detection API is running"}
+    return {
+        "status": "ok" if model is not None else "error",
+        "message": "Weapon Detection API is running" if model is not None else "Weapon Detection API running, but model is not loaded",
+        "model_loaded": model is not None,
+        "model_classes": list(model.names.values()) if model is not None else []
+    }
 
 @app.post("/api/predict")
 async def predict(
